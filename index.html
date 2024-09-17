@@ -48,15 +48,17 @@
             var stimulus = isCongruent ? congruentStimuli[Math.floor(Math.random() * congruentStimuli.length)] 
                                        : incongruentStimuli[Math.floor(Math.random() * incongruentStimuli.length)];
             
+            var correctResponse = stimulus.includes('→') ? 'ArrowRight' : 'ArrowLeft';
+
             var trial = {
                 type: 'html-keyboard-response',
                 stimulus: stimulus,
                 choices: choices,
                 trial_duration: 1500,
                 on_finish: function(data) {
-                    // Score correctness based on stimulus
+                    // Determine correctness based on stimulus
                     var correctResponse = data.stimulus.includes('→') ? 'ArrowRight' : 'ArrowLeft';
-                    data.correct = (data.response == correctResponse);
+                    data.correct = (data.response === correctResponse);
                 }
             };
             timeline.push(trial);
@@ -68,8 +70,10 @@
             stimulus: function() {
                 var trials = jsPsych.data.get().filter({trial_type: 'html-keyboard-response'});
                 var correctTrials = trials.filter({correct: true});
-                var accuracy = Math.round((correctTrials.count() / trials.count()) * 100);
-                var rt = Math.round(correctTrials.select('rt').mean());
+                var totalTrials = trials.count();
+                var correctCount = correctTrials.count();
+                var accuracy = Math.round((correctCount / totalTrials) * 100);
+                var rt = Math.round(correctTrials.select('rt').mean() || 0); // Handle case where no correct responses
 
                 return '<p>You responded correctly on ' + accuracy + '% of the trials.</p>' +
                        '<p>Your average reaction time for correct responses was ' + rt + ' ms.</p>' +
