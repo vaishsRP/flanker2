@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flanker Test</title>
-    <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css">
+    <title>Flanker Task</title>
+    <script src="https://unpkg.com/jspsych@8.0.0" type="text/javascript"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.0.0" type="text/javascript"></script>
+    <link rel="stylesheet" href="https://unpkg.com/jspsych@8.0.0/css/jspsych.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,6 +16,12 @@
             max-width: 800px;
             margin: 0 auto;
         }
+        .flanker-stimulus {
+            font-size: 300%;
+        }
+        .fixation {
+            font-size: 80px;
+        }
     </style>
 </head>
 <body>
@@ -23,42 +29,49 @@
     <div id="jspsych-target"></div>
 
     <script>
-        // Define stimuli for the Flanker test
-        var congruentStimuli = ['<div>→ → → → →</div>', '<div>← ← ← ← ←</div>'];
-        var incongruentStimuli = ['<div>← ← → ← ←</div>', '<div>→ → ← → →</div>'];
+        // Define stimuli for the Flanker task
+        var congruentStimuli = ['<<<<<', '>>>>>'];
+        var incongruentStimuli = ['<<><<', '>><>>'];
 
-        // Define key mappings
+        // Define choices
         var choices = ['ArrowLeft', 'ArrowRight'];
 
-        // Define timeline for the experiment
+        // Define timeline
         var timeline = [];
 
         // Welcome message
         var welcome = {
-            type: 'html-keyboard-response',
+            type: jsPsychHtmlKeyboardResponse,
             stimulus: '<p>Welcome to the Flanker Task.</p>' +
                       '<p>Press the left arrow key if the middle arrow is pointing left, and the right arrow key if the middle arrow is pointing right.</p>' +
-                      '<p>Press any key to begin.</p>',
+                      '<p>Press any key to begin.</p>'
         };
         timeline.push(welcome);
 
-        // Loop to generate trials
+        // Generate trials
         for (var i = 0; i < 10; i++) {
             var isCongruent = Math.random() > 0.5;
             var stimulus = isCongruent ? congruentStimuli[Math.floor(Math.random() * congruentStimuli.length)] 
                                        : incongruentStimuli[Math.floor(Math.random() * incongruentStimuli.length)];
             
-            var correctResponse = stimulus.includes('→') ? 'ArrowRight' : 'ArrowLeft';
+            var correctResponse = stimulus.includes('>>') ? 'ArrowRight' : 'ArrowLeft';
 
             var trial = {
-                type: 'html-keyboard-response',
-                stimulus: stimulus,
+                type: jsPsychHtmlKeyboardResponse,
+                stimulus: '<div class="flanker-stimulus">' + stimulus + '</div>',
                 choices: choices,
                 trial_duration: 1500,
                 on_finish: function(data) {
-                    // Determine correctness based on stimulus
-                    var correctResponse = data.stimulus.includes('→') ? 'ArrowRight' : 'ArrowLeft';
+                    // Update data with correctness and reaction time
+                    var correctResponse = data.stimulus.includes('>>') ? 'ArrowRight' : 'ArrowLeft';
                     data.correct = (data.response === correctResponse);
+                    data.correct_response = correctResponse;
+
+                    // Log data for debugging
+                    console.log('Stimulus:', data.stimulus);
+                    console.log('Response:', data.response);
+                    console.log('Correct Response:', correctResponse);
+                    console.log('Correct:', data.correct);
                 }
             };
             timeline.push(trial);
@@ -66,17 +79,23 @@
 
         // Debrief and show results
         var debrief = {
-            type: 'html-keyboard-response',
+            type: jsPsychHtmlKeyboardResponse,
             stimulus: function() {
                 var trials = jsPsych.data.get().filter({trial_type: 'html-keyboard-response'});
                 var correctTrials = trials.filter({correct: true});
                 var totalTrials = trials.count();
                 var correctCount = correctTrials.count();
                 var accuracy = Math.round((correctCount / totalTrials) * 100);
-                var rt = Math.round(correctTrials.select('rt').mean() || 0); // Handle case where no correct responses
+                var avgRT = Math.round(correctTrials.select('rt').mean() || 0);
+
+                // Log results for debugging
+                console.log('Total Trials:', totalTrials);
+                console.log('Correct Count:', correctCount);
+                console.log('Accuracy:', accuracy);
+                console.log('Average RT:', avgRT);
 
                 return '<p>You responded correctly on ' + accuracy + '% of the trials.</p>' +
-                       '<p>Your average reaction time for correct responses was ' + rt + ' ms.</p>' +
+                       '<p>Your average reaction time for correct responses was ' + avgRT + ' ms.</p>' +
                        '<p>Press any key to finish the experiment.</p>';
             }
         };
@@ -87,7 +106,8 @@
             timeline: timeline,
             display_element: 'jspsych-target',
             on_finish: function() {
-                jsPsych.data.displayData(); // You can display the data in the console or send it to a server
+                // Display raw data for debugging
+                jsPsych.data.displayData(); 
             }
         });
     </script>
